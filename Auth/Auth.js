@@ -20,11 +20,11 @@ Router.post('/login', LogIn);
 
 Router.post('/verify-email', verifyEmail);
 
-//http://localhost:5555/api/reset-password to call this api
+//http://localhost:5555/api/forgot-password to call this api
 
 Router.post('/forgot-password', forgotPassword);
 //http://localhost:5555/api/reset-password to call this api
 
-Router.post('/forgot-password', isValidResetToken, resetPassword);
+Router.post('/reset-password', isValidResetToken, resetPassword);
 
 export default Router;

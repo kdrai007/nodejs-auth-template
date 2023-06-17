@@ -212,7 +212,33 @@ export const forgotPassword = async (req, res) => {
 };
 
 export const resetPassword = async (req, res) => {
-  console.log(req);
+  const { password } = req.body;
+  const user = await User.findById(req.user._id);
+  if (!user)
+    return res.status(401).json({ success: false, error: 'user not found' });
+  const isSame = await user.comparePassword(password);
+  if (isSame)
+    return res
+      .status(401)
+      .json({ success: false, error: "you can't use your old password" });
+  if (password.length < 5)
+    return res
+      .status(401)
+      .json({ success: false, error: 'password too short' });
+  user.password = password.trim();
+  await user.save;
+  await ResetToken.findOneAndDelete({ owner: user._id });
+  mailTransport().sendMail({
+    from: 'your-email@example.com',
+    to: user.email,
+    subject: 'password changed successfully',
+    html: `<h1 style="text-align:center">your password is changed!</h1>`,
+  });
+  return res.status(200).json({
+    success: true,
+    email: user.email,
+    msg: 'congrats your password is changed',
+  });
 };
 
 //steps:user click on forget password

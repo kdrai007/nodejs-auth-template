@@ -16,7 +16,7 @@ export const isValidResetToken = async (req, res, next) => {
     return res
       .status(401)
       .json({ success: false, error: 'reset token not found' });
-  const validToken = await ResetToken.compareToken(token);
+  const validToken = await resetToken.compareResetToken(token);
   if (!validToken)
     return res
       .status(401)

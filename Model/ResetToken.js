@@ -18,7 +18,7 @@ const resetTokenSchema = mongoose.Schema({
   },
 });
 
-resetTokenSchema.methods.compareToken = async function (token) {
+resetTokenSchema.methods.compareResetToken = async function (token) {
   const result = bcrypt.compareSync(token, this.token);
   return result;
 };
