@@ -16,7 +16,7 @@ export const SignUp = async (req, res) => {
     let success = false;
     let user = await User.findOne({ email: req.body.email });
     if (user) {
-      return res.status(400).json({ success, message: 'user already exist' });
+      return res.status(400).json({ success, error: 'user already exist' });
     }
 
     const { name, email, password } = req.body;
@@ -54,11 +54,14 @@ export const SignUp = async (req, res) => {
     });
 
     success = true;
-    res.status(200).json({ success, message: 'successful', newUser });
+    res
+      .status(200)
+      .json({ success, message: 'successful', user: newUser.name, token });
   } catch (error) {
-    console.error(error);
-    console.error(error.message);
-    res.status(500).send('some error occured while creating the user');
+    res.status(500).json({
+      success: false,
+      error: 'some error occured while creating the user',
+    });
   }
 };
 
@@ -66,7 +69,7 @@ export const LogIn = async (req, res) => {
   let success = false;
   let user = await User.findOne({ email: req.body.email });
   if (!user) {
-    return res.status(400).json({ success, message: 'Incorrect Email' });
+    return res.status(400).json({ success, error: 'Incorrect Email' });
   }
   try {
     const { email, password } = req.body;
@@ -85,80 +88,69 @@ export const LogIn = async (req, res) => {
             pass.token = token;
 
             success = true;
-            return res
-              .status(200)
-              .json({ success, message: 'logged in', token: pass.token });
+            return res.status(200).json({
+              success,
+              message: 'logged in',
+              token: pass.token,
+              user: pass.name,
+            });
           } else {
             if (!err)
               return res
                 .status(401)
-                .json({ success, message: 'invalid credentials' });
+                .json({ success, error: 'invalid credentials' });
           }
         });
       }
     });
   } catch (error) {
-    res.status(401).json({ error: 'something went wrong' });
+    res.status(401).json({ success: false, error: 'something went wrong' });
   }
 };
 
 export const verifyEmail = async (req, res) => {
   // Extract userId and otp from request body
   const { userId, otp } = req.body;
-
   // Check if userId or otp is missing or empty
   if (!userId || !otp.trim()) {
     return res.status(401).json({ success: false, error: 'Invalid request!' });
   }
-
   // Check if userId is a valid ObjectId
   if (!isValidObjectId(userId)) {
     return res.status(401).json({ success: false, error: 'Invalid User Id!' });
   }
-
   // Find the user by the userId
   const user = await User.findById(userId);
-  console.log(user);
-
   // Check if user exists
   if (!user) {
     return res.status(401).json({ success: false, error: 'No users found!' });
   }
-
   // Check if user is already verified
   if (user.verified) {
     return res
       .status(401)
       .json({ success: false, error: 'User is already verified' });
   }
-
   // Find the verification token associated with the user
   const token = await Vtoken.findOne({ owner: user._id });
-
   // Check if verification token exists
   if (!token) {
     return res.status(401).json({ success: false, error: 'No token found' });
   }
-
   // Compare the provided OTP with the stored token
   const isMatched = await token.compareToken(otp);
-
   // Check if the OTP matches
   if (!isMatched) {
     return res
       .status(401)
       .json({ success: false, error: 'Please provide a valid token' });
   }
-
   // Update the user as verified
   user.verified = true;
-
   // Delete the verification token
   await Vtoken.findByIdAndDelete(token._id);
-
   // Save the updated user
   await user.save();
-
   // Send verification email
   mailTransport().sendMail({
     from: 'your-email@example.com',
@@ -166,20 +158,24 @@ export const verifyEmail = async (req, res) => {
     subject: 'Your Verification',
     html: `<h1 style="text-align:center">Your email is verified!</h1>`,
   });
-
   // Return success response
   res.status(200).json({ success: true, msg: 'User verified' });
 };
 
 export const forgotPassword = async (req, res) => {
+  //destructuring email from req.body;
   const { email } = req.body;
+  //checking if email is not null
   if (!email)
     return res
       .status(401)
       .json({ success: false, error: 'please provide email' });
+  //finding user from given email id
   const user = await User.findOne({ email });
+  //checking if user exist or not by given email by
   if (!user)
     return res.status(401).json({ success: false, error: 'user not found!' });
+  //checking if there is is any old token to same user
   const checkToken = await ResetToken.findOne({ owner: user._id });
   if (checkToken) {
     return res.status(401).json({
@@ -188,6 +184,7 @@ export const forgotPassword = async (req, res) => {
         'new token will be generated after one hour of your previous request',
     });
   }
+  //creating new token and hashing it with bcrypt
   const token = await createRandomByte();
   const hashToken = await bcrypt.hash(token, 8);
   const resetToken = new ResetToken({
@@ -201,9 +198,9 @@ export const forgotPassword = async (req, res) => {
     from: 'your-email@example.com',
     to: user.email,
     subject: 'Reset password',
-    html: `<div style="text-align:center"><h1>Reset Your password</h1> <a href='http://localhost:3000/reset-password?token=${token}&id=${user._id}'>Reset Password</a></div>`,
+    html: `<div style="text-align:center"><h1>Reset Your password</h1> <a href='http://localhost:5173/reset-password?token=${token}&id=${user._id}'>Reset Password</a></div>`,
   });
-
+  //sucessfull message
   res.status(200).json({
     success: true,
     email: user.email,
@@ -212,35 +209,41 @@ export const forgotPassword = async (req, res) => {
 };
 
 export const resetPassword = async (req, res) => {
+  //destructuring password from req.body
   const { password } = req.body;
+  // finding user from database with user._id
   const user = await User.findById(req.user._id);
+  //checking if user exist or not
   if (!user)
     return res.status(401).json({ success: false, error: 'user not found' });
+  //checking if password is same old
   const isSame = await user.comparePassword(password);
   if (isSame)
     return res
       .status(401)
       .json({ success: false, error: "you can't use your old password" });
+  //checking password length
   if (password.length < 5)
     return res
       .status(401)
       .json({ success: false, error: 'password too short' });
-  user.password = password.trim();
-  await user.save;
+  //storing new password in user database
+  const hashedPassword = await bcrypt.hash(password, 8);
+  user.password = hashedPassword;
+  await user.save();
+  //deleting the resetToken
   await ResetToken.findOneAndDelete({ owner: user._id });
+  //sending mail to user's email id
   mailTransport().sendMail({
     from: 'your-email@example.com',
     to: user.email,
     subject: 'password changed successfully',
     html: `<h1 style="text-align:center">your password is changed!</h1>`,
   });
+  //successfull message
   return res.status(200).json({
     success: true,
     email: user.email,
     msg: 'congrats your password is changed',
   });
 };
-
-//steps:user click on forget password
-//steps:user provide their email
-//

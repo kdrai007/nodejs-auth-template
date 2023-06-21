@@ -27,4 +27,9 @@ Router.post('/forgot-password', forgotPassword);
 
 Router.post('/reset-password', isValidResetToken, resetPassword);
 
+//http://localhost:5555/api/verify-token to call this api
+Router.get('/verify-token', isValidResetToken, (req, res) => {
+  res.status(200).json({ success: true, msg: 'your token is verified' });
+});
+
 export default Router;

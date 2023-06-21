@@ -21,6 +21,6 @@ export const validateUser = [
 export const validate = (req, res, next) => {
   const error = validationResult(req).array();
   if (error.length > 0)
-    return res.status(400).json({ success: false, error: error });
+    return res.status(400).json({ success: false, error: error[0].msg });
   next();
 };

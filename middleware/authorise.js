@@ -9,13 +9,15 @@ const verifyToken = (req, res, next) => {
     req.body.token || req.query.token || req.headers['access-token'];
 
   if (!token) {
-    return res.status(403).send('A token is required for authentication');
+    return res
+      .status(403)
+      .json({ success: false, msg: 'A token is required for authentication' });
   }
   try {
     const decoded = jwt.verify(token, config.TOKEN_KEY);
     req.user = decoded;
   } catch (err) {
-    return res.status(401).send('Invalid Token');
+    return res.status(401).json({ success: false, msg: 'Invalid Token' });
   }
   return next();
 };

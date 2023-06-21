@@ -11,7 +11,7 @@ export const isValidResetToken = async (req, res, next) => {
   const user = await User.findById(id);
   if (!user)
     return res.status(401).json({ success: false, error: 'no user found' });
-  const resetToken = await ResetToken.findOne({ onwer: user._id });
+  const resetToken = await ResetToken.findOne({ owner: user._id });
   if (!resetToken)
     return res
       .status(401)

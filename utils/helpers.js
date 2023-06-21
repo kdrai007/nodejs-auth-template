@@ -1,9 +1,6 @@
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 
-// import User from '../Model/User.js';
-// import { Vtoken } from '../Model/verifyUser.js';
-
 export const generateOtp = () => {
   let otp = '';
   for (let i = 0; i <= 3; i++) {
