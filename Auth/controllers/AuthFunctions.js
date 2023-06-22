@@ -108,9 +108,46 @@ export const LogIn = async (req, res) => {
   }
 };
 
+export const genrateVerificationToken = async (req, res) => {
+  const { id } = req.query;
+  if (!id)
+    return res.status(401).json({ success: false, error: 'no user id found' });
+  const user = await User.findById(id).select('-password');
+  if (!user)
+    return res.status(400).json({ success: false, error: 'no user found' });
+  if (user.verified)
+    return res
+      .status(401)
+      .json({ success: false, error: 'user is already verified' });
+  const token = await Vtoken.findOne({ owner: user._id });
+  if (token)
+    return res.status(400).json({
+      success: false,
+      error: 'token is already generated! check your email',
+    });
+  const OTP = generateOtp();
+  const hashOTP = await bcrypt.hash(OTP, 8);
+  const verificationToken = new Vtoken({
+    owner: user._id,
+    token: hashOTP,
+  });
+  await verificationToken.save();
+  mailTransport().sendMail({
+    from: 'verficationByKd@email.com',
+    to: user.email,
+    subject: 'Vefify your email account',
+    html: `<h1>${OTP}</h1>`,
+  });
+  res
+    .status(200)
+    .json({ success: true, msg: 'new token is generated!check your email' });
+};
+
 export const verifyEmail = async (req, res) => {
   // Extract userId and otp from request body
   const { userId, otp } = req.body;
+  console.log(userId);
+  console.log(otp);
   // Check if userId or otp is missing or empty
   if (!userId || !otp.trim()) {
     return res.status(401).json({ success: false, error: 'Invalid request!' });

@@ -5,6 +5,7 @@ import {
   forgotPassword,
   verifyEmail,
   resetPassword,
+  genrateVerificationToken,
 } from './controllers/AuthFunctions.js';
 import { validateUser, validate } from '../middleware/validator.js';
 import { isValidResetToken } from '../middleware/user.js';
@@ -19,6 +20,9 @@ Router.post('/login', LogIn);
 //http://localhost:5555/api/verify-email to call this api
 
 Router.post('/verify-email', verifyEmail);
+//http://localhost:5555/api/verify-email to call this api
+
+Router.get('/check-verificationtoken', genrateVerificationToken);
 
 //http://localhost:5555/api/forgot-password to call this api
 
